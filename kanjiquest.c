@@ -192,7 +192,7 @@ int parse(char *line, char *format, struct vocab *v)
 
 void usage(char *name)
 {
-    printf("Usage: %s [-x <format>] [-f <font>] [-s <fontsize>] [-h <height>] [-w <width>] <vocabfile> [<vocabfile>[...]]\n", name);
+    printf("Usage: %s [-v <format>] [-f <font>] [-s <fontsize>] [-h <height>] [-w <width>] <vocabfile> [<vocabfile>[...]]\n", name);
     exit(1);
 }
 
@@ -219,7 +219,7 @@ int main( int argc, char *argv[])
     q.height = HEIGHT;
     q.width = WIDTH;
     
-    while((opt = getopt(argc, argv, "x:f:s:h:w:")) != -1)
+    while((opt = getopt(argc, argv, "v:f:s:h:w:")) != -1)
     {
         switch(opt)
         {

@@ -17,7 +17,7 @@ vocab files.
 
 ## options
 
-- x <format> vocab file format (default "%i^%h^%k^%r|%e/")
+- v <format> vocab file format (default "%i^%h^%k^%r|%e/")
 - f <font> choose font (default TakaoMincho)
 - s <fontsize> fontsize (default 60)
 - h <height> pixel height of popup window (default 200)
