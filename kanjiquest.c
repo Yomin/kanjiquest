@@ -27,7 +27,6 @@
 #include <unistd.h>
 #include <gtk/gtk.h>
 #include <cairo/cairo.h>
-#include <X11/Xlib.h>
 
 #define NAME "Kanji Quest"
 #define TITLE "漢字探求"
