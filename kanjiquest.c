@@ -42,12 +42,14 @@
  * %k kanji
  * %r heisig
  * %e english
+ * %ax alternative delimiter x
  *
  * default format examples
  * shougo^しょうご^正午^correct+noon|noon
  * kawaii^かわいい^可愛い^can+love+い|cute/pretty
+ * honya/shoten^ほんや/しょてん^本屋/書店^book+roof/write+store|bookstore
  */
-#define FORMAT "%i^%h^%k^%r|%e/"
+#define FORMAT "%a/%i^%h^%k^%r|%e/"
 
 struct vocab
 {
@@ -55,6 +57,7 @@ struct vocab
     char kanji[BUFSIZE];
     char heisig[BUFSIZE];
     char en[BUFSIZE];
+    char alt[3];
 };
 
 struct quest
@@ -151,6 +154,7 @@ inline void readin(char **line, char delim, char *dst)
 int parse(char *line, char *format, struct vocab *v)
 {
     memset(v, 0, sizeof(struct vocab));
+    char alt = 0;
     
     while(1)
     {
@@ -164,15 +168,21 @@ int parse(char *line, char *format, struct vocab *v)
             break;
         case 'h':
             readin(&line, format[2], v->hira);
+            v->alt[0] = alt;
             break;
         case 'k':
             readin(&line, format[2], v->kanji);
+            v->alt[1] = alt;
             break;
         case 'r':
             readin(&line, format[2], v->heisig);
+            v->alt[2] = alt;
             break;
         case 'e':
             readin(&line, format[2], v->en);
+            break;
+        case 'a':
+            alt = format[2];
             break;
         default:
             return 1;
@@ -189,13 +199,42 @@ int parse(char *line, char *format, struct vocab *v)
     return 1;
 }
 
+inline int count_alt(char *str, char alt)
+{
+    int n = 1;
+    while(*str && (str = strchr(str, alt)))
+    {
+        n++;
+        str++;
+    }
+    return n;
+}
+
+inline void copy_alt(char *dst, char *src, char alt, int pos)
+{
+    int n = 0;
+    char *ptr = src-1;
+    
+    if(alt)
+    {
+        while(n++ <= pos)
+        {
+            src = ptr+1;
+            ptr = strchr(src, alt);
+        }
+        if(ptr)
+            *ptr = 0;
+    }
+    strcpy(dst, src);
+}
+
 void usage(char *name)
 {
     printf("Usage: %s [-v <format>] [-f <font>] [-s <fontsize>] [-h <height>] [-w <width>] <vocabfile> [<vocabfile>[...]]\n", name);
     exit(1);
 }
 
-int main( int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     GtkWidget *window;
     GtkWidget *area;
@@ -206,7 +245,7 @@ int main( int argc, char *argv[])
     size_t size = 0;
     
     struct vocab *vocab;
-    int vocabs, v;
+    int vocabs, v, alt;
     
     struct quest q;
     
@@ -254,11 +293,13 @@ int main( int argc, char *argv[])
         if(*ptr == '%')
         {
             ptr++;
-            if(!*ptr)
+            if(!*ptr || (*ptr == 'a' && (!ptr[1] || ptr[1] == '%')))
             {
                 printf("Format malformed\n");
                 return 2;
             }
+            if(*ptr == 'a')
+                ptr++;
         }
         ptr++;
     }
@@ -314,7 +355,11 @@ int main( int argc, char *argv[])
     
     srand(time(0));
     v = rand() % v;
-    memcpy(&q.v, &vocab[v], sizeof(struct vocab));
+    alt = rand() % count_alt(vocab[v].kanji, vocab[v].alt[1]);
+    copy_alt(q.v.hira, vocab[v].hira, vocab[v].alt[0], alt);
+    copy_alt(q.v.kanji, vocab[v].kanji, vocab[v].alt[1], alt);
+    copy_alt(q.v.heisig, vocab[v].heisig, vocab[v].alt[2], alt);
+    strcpy(q.v.en, vocab[v].en);
     free(vocab);
     q.q = q.v.kanji;
     
