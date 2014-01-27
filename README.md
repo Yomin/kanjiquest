@@ -31,10 +31,12 @@ Non matching vocab file lines are ignored. Between the four
 vocab parts delimiters must be put. The delimiters dont need
 to be the same. After a delimiter or before a command token
 arbitrary strings can be inserted. It is not neccessary to
-append a delimiter to the english part.
+append a delimiter to the last vocab part.
 
-- %i ignore arbitrary string until following delimiter
-- %h hiragana/katakana part
-- %k kanji part
-- %r heisig part
-- %e english part
+- %i  ignore arbitrary string until following delimiter
+- %h  hiragana/katakana part
+- %k  kanji part
+- %r  heisig part
+- %e  english part
+- %ax delimiter x for deviding alternative eg kanji
+- %cx comment character x, must be the first in format string

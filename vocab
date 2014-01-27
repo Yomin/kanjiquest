@@ -1,5 +1,14 @@
 
+# example vocab file
+# for default format string "%c#%a/%i^%h^%k^%r%d^|%e/"
+
+# normal
 nihongo^にほんご^日本語^sun+book+word|japanese language
 shougo^しょうご^正午^correct+noon|noon
-kawaii^かわいい^可愛い^can+love+い|cute/pretty
 jidouhanbaiki^じどうはんばいき^自動販売機^oneself+move+marketing+sell+mechanism|vending machine
+
+# %e/: only 'cute' will be shown for english
+kawaii^かわいい^可愛い^can+love+い|cute/pretty
+
+# %a/: use of alternative vocab, one is randomly choosen
+honya/shoten^ほんや/しょてん^本屋/書店^book+roof/write+store|bookstore

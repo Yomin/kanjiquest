@@ -43,13 +43,14 @@
  * %r heisig
  * %e english
  * %ax alternative delimiter x
+ * %cx comment starts with x
  *
  * default format examples
  * shougo^しょうご^正午^correct+noon|noon
  * kawaii^かわいい^可愛い^can+love+い|cute/pretty
  * honya/shoten^ほんや/しょてん^本屋/書店^book+roof/write+store|bookstore
  */
-#define FORMAT "%a/%i^%h^%k^%r|%e/"
+#define FORMAT "%c#%a/%i^%h^%k^%r|%e/"
 
 struct vocab
 {
@@ -160,6 +161,16 @@ int parse(char *line, char *format, struct vocab *v)
     memset(v, 0, sizeof(struct vocab));
     char alt = 0;
     
+    if(*line == '\n')
+        return 1;
+    
+    if(format[0] == '%' && format[1] == 'c')
+    {
+        if(*line == format[2])
+            return 1;
+        format += 3;
+    }
+    
     while(1)
     {
         match(&line, &format);
@@ -188,6 +199,8 @@ int parse(char *line, char *format, struct vocab *v)
         case 'a':
             alt = format[2];
             break;
+        case 'c':
+            break;
         default:
             return 1;
         }
@@ -198,6 +211,8 @@ int parse(char *line, char *format, struct vocab *v)
     
     if(*v->hira && *v->kanji && *v->heisig && *v->en)
         return 0;
+    
+    printf("Warning: malformed vocab line\n%s", l);
     
     return 1;
 }
@@ -264,6 +279,8 @@ int check_arg(char **ptr)
 
 int check_format(char *format)
 {
+    char *f = format;
+    
     while(*format)
     {
         forward(&format, '%');
@@ -290,6 +307,10 @@ int check_format(char *format)
         case 'a':
             if(check_arg(&format))
                 return 1;
+            break;
+        case 'c':
+            if(format-f != 2)
+                printf("Warning: format contains %%c on not first position\n");
             break;
         default:
             printf("Format malformed: unknown directive\n");
