@@ -301,7 +301,7 @@ int check_format(char *format)
 
 void usage(char *name)
 {
-    printf("Usage: %s [-v <format>] [-f <font>] [-s <fontsize>] [-h <height>] [-w <width>] <vocabfile> [<vocabfile>[...]]\n", name);
+    printf("Usage: %s [-v <format>] [-f <font>] [-s <fontsize>] [-h <height>] [-w <width>] [-q <quest>] <vocabfile> [<vocabfile>[...]]\n", name);
     exit(1);
 }
 
@@ -327,8 +327,9 @@ int main(int argc, char *argv[])
     q.fsize = FONTSIZE;
     q.height = HEIGHT;
     q.width = WIDTH;
+    q.q = q.v.kanji;
     
-    while((opt = getopt(argc, argv, "v:f:s:h:w:")) != -1)
+    while((opt = getopt(argc, argv, "v:f:s:h:w:q:")) != -1)
     {
         switch(opt)
         {
@@ -352,6 +353,17 @@ int main(int argc, char *argv[])
             if(strspn(optarg, "1234567890") != strlen(optarg))
                 usage(argv[0]);
             q.width = atoi(optarg);
+            break;
+        case 'q':
+            if(strspn(optarg, "1234567890") != strlen(optarg))
+                usage(argv[0]);
+            switch(atoi(optarg))
+            {
+                case 1: q.q = q.v.hira; break;
+                case 2: q.q = q.v.kanji; break;
+                case 3: q.q = q.v.heisig; break;
+                case 4: q.q = q.v.en; break;
+            }
             break;
         default:
             usage(argv[0]);
@@ -418,7 +430,6 @@ int main(int argc, char *argv[])
     copy_alt(q.v.heisig, vocab[v].heisig, vocab[v].alt[2], alt);
     strcpy(q.v.en, vocab[v].en);
     free(vocab);
-    q.q = q.v.kanji;
     
     gtk_init(&argc, &argv);
     

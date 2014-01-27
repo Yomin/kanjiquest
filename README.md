@@ -22,6 +22,7 @@ vocab files.
 - s <fontsize> fontsize (default 60)
 - h <height> pixel height of popup window (default 200)
 - w <width> pixel width of popup window (default 500)
+- q <quest> number for kana/kanji/heisig/english like keynumbers
 
 ## format
 
