@@ -44,13 +44,15 @@
  * %e english
  * %ax alternative delimiter x
  * %cx comment starts with x
+ * %dx distinguisher with delimiter x
  *
  * default format examples
  * shougo^しょうご^正午^correct+noon|noon
  * kawaii^かわいい^可愛い^can+love+い|cute/pretty
  * honya/shoten^ほんや/しょてん^本屋/書店^book+roof/write+store|bookstore
+ * ageru^あげる^上げる^above+げる^transitive|to give
  */
-#define FORMAT "%c#%a/%i^%h^%k^%r|%e/"
+#define FORMAT "%c#%a/%i^%h^%k^%r%d^|%e/"
 
 struct vocab
 {
@@ -58,13 +60,14 @@ struct vocab
     char kanji[BUFSIZE];
     char heisig[BUFSIZE];
     char en[BUFSIZE];
+    char dist[BUFSIZE];
     char alt[3];
 };
 
 struct quest
 {
     struct vocab v;
-    char *q, *font;
+    char *q, *font, *d;
     int height, width, fsize;
 };
 
@@ -73,6 +76,7 @@ gboolean draw(GtkWidget *widget, cairo_t *cr, gpointer data)
     struct quest *q = (struct quest*) data;
     cairo_text_extents_t te;
     int fsize;
+    char *title;
     
     cairo_rectangle(cr, 0, 0, q->width, q->height);
     cairo_fill(cr);
@@ -80,10 +84,17 @@ gboolean draw(GtkWidget *widget, cairo_t *cr, gpointer data)
     cairo_set_source_rgb(cr, 1, 0, 0);
     cairo_select_font_face(cr, q->font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
     
+    title = q->d && q->d[0] ? q->d : TITLE;
     cairo_set_font_size(cr, q->fsize-20);
-    cairo_text_extents(cr, TITLE, &te);
+    cairo_text_extents(cr, title, &te);
+    fsize = q->fsize-20;
+    while(te.width >= q->width)
+    {
+        cairo_set_font_size(cr, --fsize);
+        cairo_text_extents(cr, title, &te);
+    }
     cairo_move_to(cr, q->width/2-te.x_bearing-te.width/2, q->height/3);
-    cairo_show_text(cr, TITLE);
+    cairo_show_text(cr, title);
     
     cairo_set_font_size(cr, q->fsize);
     cairo_text_extents(cr, q->q, &te);
@@ -93,7 +104,6 @@ gboolean draw(GtkWidget *widget, cairo_t *cr, gpointer data)
         cairo_set_font_size(cr, --fsize);
         cairo_text_extents(cr, q->q, &te);
     }
-    
     cairo_move_to(cr, q->width/2-te.x_bearing-te.width/2, q->height/2+te.height);
     cairo_show_text(cr, q->q);
     
@@ -106,10 +116,11 @@ gboolean keypress(GtkWidget *widget, GdkEventKey *event, gpointer data)
     
     switch(event->keyval)
     {
-    case GDK_KEY_1: q->q = q->v.hira; break;
-    case GDK_KEY_2: q->q = q->v.kanji; break;
-    case GDK_KEY_3: q->q = q->v.heisig; break;
-    case GDK_KEY_4: q->q = q->v.en; break;
+    case GDK_KEY_1: q->q = q->v.hira; q->d = 0; break;
+    case GDK_KEY_2: q->q = q->v.kanji; q->d = 0; break;
+    case GDK_KEY_3: q->q = q->v.heisig; q->d = 0; break;
+    case GDK_KEY_4: q->q = q->v.en; q->d = 0; break;
+    case GDK_KEY_d: q->d = q->d ? 0 : q->v.dist; break;
     case GDK_KEY_q:
     case GDK_KEY_space:
     case GDK_KEY_Return: gtk_main_quit(); break;
@@ -138,11 +149,32 @@ inline void forward(char **line, char delim)
         (*line)++;
 }
 
-inline void readin(char **line, char delim, char *dst)
+void dforward(char **line, char *delim)
 {
-    int n = 0;
+    if(*delim == '%') // only for delim[1] == 'd'
+        delim += 2;
+    forward(line, *delim);
+}
+
+int readin(char **line, char *delim, char *dst)
+{
+    int n = 0, opt = 0;
+    char *d1, *d2, d = *delim;
     
-    while(**line && **line != delim)
+    if(*delim == '%') // only for delim[1] == 'd'
+    {
+        d1 = strchr(*line, delim[2]); // optional delimiter
+        d2 = strchr(*line, delim[3]); // next delimiter
+        if(d1 && (!d2 || d1 < d2))
+        {
+            d = delim[2];
+            opt = 1;
+        }
+        else
+            d = delim[3];
+    }
+    
+    while(**line && **line != d)
     {
         if(n < BUFSIZE-1)
         {
@@ -154,12 +186,15 @@ inline void readin(char **line, char delim, char *dst)
     }
     if(**line)
         (*line)++;
+    
+    return opt;
 }
 
 int parse(char *line, char *format, struct vocab *v)
 {
     memset(v, 0, sizeof(struct vocab));
-    char alt = 0;
+    char alt = 0, *l = line;
+    int opt = 0;
     
     if(*line == '\n')
         return 1;
@@ -179,32 +214,40 @@ int parse(char *line, char *format, struct vocab *v)
         switch(format[1])
         {
         case 'i':
-            forward(&line, format[2]);
+            dforward(&line, format+2);
             break;
         case 'h':
-            readin(&line, format[2], v->hira);
+            opt = readin(&line, format+2, v->hira);
             v->alt[0] = alt;
             break;
         case 'k':
-            readin(&line, format[2], v->kanji);
+            opt = readin(&line, format+2, v->kanji);
             v->alt[1] = alt;
             break;
         case 'r':
-            readin(&line, format[2], v->heisig);
+            opt = readin(&line, format+2, v->heisig);
             v->alt[2] = alt;
             break;
         case 'e':
-            readin(&line, format[2], v->en);
+            opt = readin(&line, format+2, v->en);
             break;
         case 'a':
             alt = format[2];
+            break;
+        case 'd':
+            format++;
+            if(!opt)
+                break;
+            opt = readin(&line, format+2, v->dist);
             break;
         case 'c':
             break;
         default:
             return 1;
         }
-        format += 3;
+        if(format[3] != 'd')
+            format++;
+        format += 2;
         if(!*line || !*format)
             break;
     }
@@ -298,7 +341,7 @@ int check_format(char *format)
         case 'h':
         case 'k':
         case 'r':
-            if(check_delim(&format, ""))
+            if(check_delim(&format, "d"))
                 return 1;
             break;
         case 'e':
@@ -306,6 +349,10 @@ int check_format(char *format)
             break;
         case 'a':
             if(check_arg(&format))
+                return 1;
+            break;
+        case 'd':
+            if(check_arg(&format) || check_delim(&format, ""))
                 return 1;
             break;
         case 'c':
@@ -349,6 +396,7 @@ int main(int argc, char *argv[])
     q.height = HEIGHT;
     q.width = WIDTH;
     q.q = q.v.kanji;
+    q.d = 0;
     
     while((opt = getopt(argc, argv, "v:f:s:h:w:q:")) != -1)
     {
@@ -449,6 +497,7 @@ int main(int argc, char *argv[])
     copy_alt(q.v.hira, vocab[v].hira, vocab[v].alt[0], alt);
     copy_alt(q.v.kanji, vocab[v].kanji, vocab[v].alt[1], alt);
     copy_alt(q.v.heisig, vocab[v].heisig, vocab[v].alt[2], alt);
+    strcpy(q.v.dist, vocab[v].dist);
     strcpy(q.v.en, vocab[v].en);
     free(vocab);
     

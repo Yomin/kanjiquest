@@ -12,3 +12,6 @@ kawaii^かわいい^可愛い^can+love+い|cute/pretty
 
 # %a/: use of alternative vocab, one is randomly choosen
 honya/shoten^ほんや/しょてん^本屋/書店^book+roof/write+store|bookstore
+
+# %d^: note the extra case, it will be used as distinguisher
+ageru^あげる^上げる^above+げる^transitive|to give

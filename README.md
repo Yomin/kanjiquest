@@ -40,3 +40,4 @@ append a delimiter to the last vocab part.
 - %e  english part
 - %ax delimiter x for deviding alternative eg kanji
 - %cx comment character x, must be the first in format string
+- %dx optional distinguisher part, x is the previous delimiter
