@@ -133,6 +133,8 @@ inline void forward(char **line, char delim)
 {
     while(**line && **line != delim)
         (*line)++;
+    if(**line)
+        (*line)++;
 }
 
 inline void readin(char **line, char delim, char *dst)
@@ -149,6 +151,8 @@ inline void readin(char **line, char delim, char *dst)
         }
         (*line)++;
     }
+    if(**line)
+        (*line)++;
 }
 
 int parse(char *line, char *format, struct vocab *v)
@@ -190,7 +194,6 @@ int parse(char *line, char *format, struct vocab *v)
         format += 3;
         if(!*line || !*format)
             break;
-        line++;
     }
     
     if(*v->hira && *v->kanji && *v->heisig && *v->en)
@@ -228,6 +231,74 @@ inline void copy_alt(char *dst, char *src, char alt, int pos)
     strcpy(dst, src);
 }
 
+int check_delim(char **ptr, char *exc)
+{
+    char *p = *ptr;
+    if(!p[0])
+        return 0;
+    if(p[0])
+    {
+        if(p[0] != '%')
+        {
+            (*ptr)++;
+            return 0;
+        }
+        else if(p[1] && strchr(exc, p[1]))
+            return 0;
+    }
+    printf("Format malformed: delimiter missing\n");
+    return 1;
+}
+
+int check_arg(char **ptr)
+{
+    char *p = *ptr;
+    if(p[0] && p[0] != '%')
+    {
+        (*ptr)++;
+        return 0;
+    }
+    printf("Format malformed: argument missing\n");
+    return 1;
+}
+
+int check_format(char *format)
+{
+    while(*format)
+    {
+        forward(&format, '%');
+        if(!*format)
+            break;
+        if(*format == '%')
+        {
+            printf("Format malformed: directive missing\n");
+            return 1;
+        }
+        format++;
+        switch(format[-1])
+        {
+        case 'i':
+        case 'h':
+        case 'k':
+        case 'r':
+            if(check_delim(&format, ""))
+                return 1;
+            break;
+        case 'e':
+            format++;
+            break;
+        case 'a':
+            if(check_arg(&format))
+                return 1;
+            break;
+        default:
+            printf("Format malformed: unknown directive\n");
+            return 1;
+        }
+    }
+    return 0;
+}
+
 void usage(char *name)
 {
     printf("Usage: %s [-v <format>] [-f <font>] [-s <fontsize>] [-h <height>] [-w <width>] <vocabfile> [<vocabfile>[...]]\n", name);
@@ -250,7 +321,7 @@ int main(int argc, char *argv[])
     struct quest q;
     
     int opt;
-    char *format = FORMAT, *ptr;
+    char *format = FORMAT;
     
     q.font = FONT;
     q.fsize = FONTSIZE;
@@ -287,22 +358,8 @@ int main(int argc, char *argv[])
         }
     }
     
-    ptr = format;
-    while(*ptr)
-    {
-        if(*ptr == '%')
-        {
-            ptr++;
-            if(!*ptr || (*ptr == 'a' && (!ptr[1] || ptr[1] == '%')))
-            {
-                printf("Format malformed\n");
-                return 2;
-            }
-            if(*ptr == 'a')
-                ptr++;
-        }
-        ptr++;
-    }
+    if(check_format(format))
+        return 2;
     
     if(optind == argc)
         usage(argv[0]);
