@@ -194,7 +194,7 @@ int parse(char *line, char *format, struct vocab *v)
 {
     memset(v, 0, sizeof(struct vocab));
     char alt = 0, *l = line;
-    int opt = 0;
+    int opt = 0, check = 0;
     
     if(*line == '\n')
         return 1;
@@ -219,17 +219,21 @@ int parse(char *line, char *format, struct vocab *v)
         case 'h':
             opt = readin(&line, format+2, v->hira);
             v->alt[0] = alt;
+            check++;
             break;
         case 'k':
             opt = readin(&line, format+2, v->kanji);
             v->alt[1] = alt;
+            check++;
             break;
         case 'r':
             opt = readin(&line, format+2, v->heisig);
             v->alt[2] = alt;
+            check++;
             break;
         case 'e':
             opt = readin(&line, format+2, v->en);
+            check++;
             break;
         case 'a':
             alt = format[2];
@@ -255,7 +259,8 @@ int parse(char *line, char *format, struct vocab *v)
     if(*v->hira && *v->kanji && *v->heisig && *v->en)
         return 0;
     
-    printf("Warning: malformed vocab line\n%s", l);
+    if(check != 4)
+        printf("Warning: malformed vocab line\n%s", l);
     
     return 1;
 }
